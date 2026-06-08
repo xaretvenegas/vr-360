@@ -2,8 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>VR 360 · Visor Inmersivo</title>
+  <!-- PWA: abre sin barras del navegador al agregar a inicio -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="VR 360"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#0a0a0f"/>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
@@ -105,6 +111,15 @@
 <body>
 
 <div id="veil"><div class="ring"></div><div class="veil-txt">Iniciando escena VR</div></div>
+
+<!-- PWA install banner -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(10,10,15,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(240,237,230,0.15);padding:16px 20px max(20px,env(safe-area-inset-bottom,20px));font-family:Space Mono,monospace;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+    <div style="font-family:Syne,sans-serif;font-size:14px;font-weight:800;color:#f0ede6">Pantalla completa en Cardboard</div>
+    <button onclick="localStorage.setItem('vr360-pwa','1');this.closest('#pwa-banner').style.display='none'" style="background:none;border:none;color:#f0ede6;opacity:.5;font-size:18px;cursor:pointer;padding:0 0 0 12px">✕</button>
+  </div>
+  <div style="font-size:11px;letter-spacing:.05em;color:#f0ede6;opacity:.65;line-height:1.8">Safari no permite pantalla completa desde el navegador.<br>Para usarlo sin barras en Cardboard:<br><span style="color:#f5c518">⎋ Compartir → "Agregar a pantalla de inicio"</span><br>Luego abre la app desde tu pantalla de inicio.</div>
+</div>
 <canvas id="sbs-canvas"></canvas>
 
 <a-scene id="scene" vr-mode-ui="enabled:false" embedded
@@ -427,6 +442,17 @@ document.addEventListener('touchstart',()=>{
   const rfs=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
   if(rfs&&!document.fullscreenElement) rfs.call(document.documentElement).catch(()=>{});
 },{once:true});
+
+/* ── PWA install banner (iOS Safari only, once) ── */
+(function(){
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isStandalone=window.navigator.standalone===true;
+  const dismissed=localStorage.getItem("vr360-pwa");
+  if(isIOS&&isSafari&&!isStandalone&&!dismissed){
+    setTimeout(()=>{ document.getElementById("pwa-banner").style.display="block"; },2000);
+  }
+})();
 </script>
 </body>
 </html>
