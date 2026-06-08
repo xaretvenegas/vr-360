@@ -5,565 +5,424 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>VR 360 · Visor Inmersivo</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
-
     :root {
-      --ink: #0a0a0f;
-      --paper: #f0ede6;
-      --accent: #e8420a;
-      --accent2: #f5c518;
-      --glass: rgba(10, 10, 15, 0.72);
-      --border: rgba(240, 237, 230, 0.15);
-      --radius: 2px;
+      --ink: #0a0a0f; --paper: #f0ede6; --accent: #e8420a;
+      --accent2: #f5c518; --glass: rgba(10,10,15,0.80);
+      --border: rgba(240,237,230,0.15);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
-    body {
-      font-family: 'Syne', sans-serif;
-      background: var(--ink);
-      color: var(--paper);
-      overflow: hidden;
-      height: 100dvh;
-      width: 100dvw;
+    /* ── A-FRAME fills screen ── */
+    a-scene { width: 100vw !important; height: 100vh !important; }
+
+    /* ── SBS CANVAS overlay ── */
+    #sbs-canvas {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      display: none; z-index: 10;
+      background: #000;
     }
 
-    /* ── OVERLAY UI ─────────────────────────────────────────── */
-    #ui-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+    /* ── UI OVERLAY ── */
+    #ui {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
       pointer-events: none;
-      transition: opacity 0.6s ease, transform 0.6s ease;
+      transition: opacity .5s ease, transform .5s ease;
     }
+    #ui.hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
 
-    #ui-overlay.hidden {
-      opacity: 0;
-      transform: translateY(24px);
-      pointer-events: none;
-    }
-
-    /* ── HEADER BADGE ───────────────────────────────────────── */
-    #header-badge {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 101;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    #panel {
       background: var(--glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 8px 16px 8px 10px;
-      pointer-events: none;
-      transition: opacity 0.6s ease;
-    }
-
-    #header-badge.hidden { opacity: 0; }
-
-    .badge-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.7); }
-    }
-
-    .badge-text {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--paper);
-      opacity: 0.8;
-    }
-
-    /* ── PANEL CARD ─────────────────────────────────────────── */
-    #control-panel {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      width: min(340px, calc(100vw - 40px));
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: 18px;
+      padding: 22px; width: min(340px, calc(100vw - 32px));
       pointer-events: all;
-      position: relative;
-      overflow: hidden;
     }
+    .title { font-family: 'Syne',sans-serif; font-size: 24px; font-weight: 800;
+      color: var(--paper); line-height: 1.05; margin-bottom: 3px; }
+    .sub { font-family: 'Space Mono',monospace; font-size: 10px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--paper); opacity: .4; margin-bottom: 18px; }
+    .row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .num { font-family: 'Space Mono',monospace; font-size: 10px; font-weight: 700;
+      color: var(--accent); background: rgba(232,66,10,.12);
+      border: 1px solid rgba(232,66,10,.3); border-radius: 4px;
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .lbl { font-family: 'Syne',sans-serif; font-size: 13px; font-weight: 700;
+      color: var(--paper); line-height: 1.2; }
+    .sub2 { font-family: 'Space Mono',monospace; font-size: 10px; color: var(--paper); opacity: .4; margin-top: 1px; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
-    /* diagonal accent stripe */
-    #control-panel::before {
-      content: '';
-      position: absolute;
-      top: 0; right: 0;
-      width: 80px; height: 80px;
-      background: var(--accent);
-      opacity: 0.08;
-      clip-path: polygon(100% 0, 100% 100%, 0 0);
-    }
-
-    .panel-title {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--paper);
-      margin-bottom: 4px;
-      line-height: 1.1;
-    }
-
-    .panel-sub {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--paper);
-      opacity: 0.4;
-      margin-bottom: 20px;
-    }
-
-    /* ── DIVIDER ────────────────────────────────────────────── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 16px 0;
-    }
-
-    /* ── STEP ROW ───────────────────────────────────────────── */
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 12px;
-    }
-
-    .step-num {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(232, 66, 10, 0.12);
-      border: 1px solid rgba(232, 66, 10, 0.3);
-      border-radius: 4px;
-      width: 24px; height: 24px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .step-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--paper);
-      opacity: 0.9;
-      line-height: 1.2;
-    }
-
-    .step-sub {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--paper);
-      opacity: 0.4;
-      margin-top: 2px;
-    }
-
-    /* ── BUTTONS ────────────────────────────────────────────── */
     .btn {
-      width: 100%;
-      padding: 13px 16px;
-      border: none;
-      border-radius: var(--radius);
-      font-family: 'Syne', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      width: 100%; padding: 13px 16px; border: none; border-radius: 3px;
+      font-family: 'Syne',sans-serif; font-size: 13px; font-weight: 700;
+      letter-spacing: .04em; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .12s, box-shadow .12s;
     }
+    .btn:active { transform: scale(.97); }
+    .btn-red  { background: var(--accent); color: #fff; box-shadow: 0 4px 18px rgba(232,66,10,.4); margin-bottom: 8px; }
+    .btn-gyro { background: transparent; color: var(--paper); border: 1px solid var(--border); margin-bottom: 8px; }
+    .btn-gyro.ok { color: #4ade80; border-color: rgba(74,222,128,.3); background: rgba(74,222,128,.07); }
+    .btn-enter { background: var(--accent2); color: var(--ink); font-weight: 800;
+      box-shadow: 0 4px 18px rgba(245,197,24,.35); display: none; margin-bottom: 8px; }
+    .btn-sbs   { background: #1a1a2e; color: var(--paper); border: 1px solid rgba(100,100,255,.3);
+      display: none; }
+    .btn-sbs.active { background: rgba(100,100,255,.25); border-color: rgba(100,100,255,.6); }
 
-    .btn:active { transform: scale(0.97); }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(232, 66, 10, 0.35);
-    }
-
-    .btn-primary:hover { box-shadow: 0 6px 28px rgba(232, 66, 10, 0.5); }
-
-    .btn-secondary {
-      background: transparent;
-      color: var(--paper);
-      border: 1px solid var(--border);
-      margin-top: 10px;
-    }
-
-    .btn-secondary:hover { background: rgba(240, 237, 230, 0.06); }
-
-    .btn-secondary.granted {
-      color: #4ade80;
-      border-color: rgba(74, 222, 128, 0.3);
-      background: rgba(74, 222, 128, 0.06);
-    }
-
-    .btn-secondary.granted:hover { background: rgba(74, 222, 128, 0.1); }
-
-    .btn-enter {
-      background: var(--accent2);
-      color: var(--ink);
-      box-shadow: 0 4px 20px rgba(245, 197, 24, 0.35);
-      font-weight: 800;
-    }
-    .btn-enter:hover { box-shadow: 0 6px 28px rgba(245, 197, 24, 0.5); }
-
-    /* hide native file input */
     #file-input { display: none; }
+    #status { font-family: 'Space Mono',monospace; font-size: 10px;
+      color: var(--paper); opacity: .35; text-align: center; margin-top: 10px; letter-spacing: .06em; }
+    #status span { color: var(--accent2); opacity: 1; }
 
-    /* ── STATUS BAR ─────────────────────────────────────────── */
-    #status-bar {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      color: var(--paper);
-      opacity: 0.35;
-      text-align: center;
-      margin-top: 14px;
-      letter-spacing: 0.06em;
+    /* ── badge ── */
+    #badge {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      z-index: 201; display: flex; align-items: center; gap: 8px;
+      background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 100px;
+      padding: 7px 14px 7px 10px; pointer-events: none;
+      transition: opacity .5s;
     }
+    #badge.hidden { opacity: 0; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+      animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+    .badge-txt { font-family: 'Space Mono',monospace; font-size: 11px;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--paper); opacity: .8; }
 
-    #status-bar span { color: var(--accent2); opacity: 1; }
-
-    /* ── LOADING OVERLAY ────────────────────────────────────── */
-    #loading-veil {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: var(--ink);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      transition: opacity 0.8s ease;
+    /* ── veil ── */
+    #veil {
+      position: fixed; inset: 0; z-index: 300; background: var(--ink);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      transition: opacity .8s;
     }
-
-    #loading-veil.fade-out { opacity: 0; pointer-events: none; }
-
-    .loader-ring {
-      width: 48px; height: 48px;
-      border: 2px solid rgba(240, 237, 230, 0.1);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-    }
-
+    #veil.out { opacity: 0; pointer-events: none; }
+    .ring { width: 44px; height: 44px; border: 2px solid rgba(240,237,230,.1);
+      border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .veil-txt { font-family: 'Space Mono',monospace; font-size: 11px;
+      letter-spacing: .15em; text-transform: uppercase; opacity: .45; color: var(--paper); }
 
-    .loader-text {
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      opacity: 0.5;
-    }
-
-    /* ── VR HINT ────────────────────────────────────────────── */
-    #vr-hint {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99;
-      background: var(--glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 10px 20px;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-      white-space: nowrap;
-    }
-
-    #vr-hint.visible { opacity: 1; }
-
-    /* ── A-FRAME CANVAS OVERRIDE ────────────────────────────── */
-    a-scene canvas { display: block; }
-
-    /* Ensure A-Frame VR button is visible */
-    .a-enter-vr {
-      z-index: 50 !important;
+    /* ── SBS exit button ── */
+    #btn-exit-sbs {
+      position: fixed; bottom: max(24px,env(safe-area-inset-bottom,24px));
+      left: 50%; transform: translateX(-50%);
+      z-index: 50; display: none;
+      background: rgba(10,10,15,.75); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 100px;
+      color: var(--paper); font-family: 'Space Mono',monospace;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      padding: 10px 20px; cursor: pointer;
     }
   </style>
 </head>
-
 <body>
 
-  <!-- ── LOADING VEIL ───────────────────────────────────── -->
-  <div id="loading-veil">
-    <div class="loader-ring"></div>
-    <div class="loader-text">Iniciando escena VR</div>
-  </div>
+<!-- Loading veil -->
+<div id="veil"><div class="ring"></div><div class="veil-txt">Iniciando escena VR</div></div>
 
-  <!-- ── A-FRAME SCENE ──────────────────────────────────── -->
-  <a-scene
-    id="vr-scene"
-    vr-mode-ui="enabled: true"
-    embedded
-    renderer="antialias: true; colorManagement: true"
-    loading-screen="dotsColor: #e8420a; backgroundColor: #0a0a0f"
-  >
-    <a-assets>
-      <img id="sky-texture" src="" crossorigin="anonymous" />
-    </a-assets>
+<!-- SBS canvas (split-screen manual) -->
+<canvas id="sbs-canvas"></canvas>
 
-    <!-- Sky sphere — filled dynamically -->
-    <a-sky id="sky" src="#sky-texture" rotation="0 -90 0"></a-sky>
+<!-- A-Frame scene -->
+<a-scene id="scene" vr-mode-ui="enabled:true" embedded
+  renderer="antialias:true;colorManagement:true"
+  loading-screen="enabled:false">
+  <a-sky id="sky" rotation="0 -90 0"></a-sky>
+  <a-entity id="cam" camera look-controls="magicWindowTrackingEnabled:true" position="0 1.6 0"></a-entity>
+</a-scene>
 
-    <!-- Default camera with look-controls for gyroscope / mouse -->
-    <a-entity camera look-controls="magicWindowTrackingEnabled: true; reverseMouseDrag: false" position="0 1.6 0">
-    </a-entity>
-  </a-scene>
+<!-- Badge -->
+<div id="badge"><div class="dot"></div><span class="badge-txt">VR 360 · Visor Inmersivo</span></div>
 
-  <!-- ── HEADER BADGE ───────────────────────────────────── -->
-  <div id="header-badge">
-    <div class="badge-dot"></div>
-    <span class="badge-text">VR 360 · Visor Inmersivo</span>
-  </div>
+<!-- UI Panel -->
+<div id="ui">
+  <div id="panel">
+    <div class="title">Visor VR<br>360°</div>
+    <div class="sub">Google Cardboard · WebXR</div>
 
-  <!-- ── MAIN UI OVERLAY ────────────────────────────────── -->
-  <div id="ui-overlay">
-    <div id="control-panel">
-      <div class="panel-title">Visor VR<br>360°</div>
-      <div class="panel-sub">Google Cardboard · WebXR</div>
-
-      <!-- Step 1 -->
-      <div class="step">
-        <div class="step-num">1</div>
-        <div>
-          <div class="step-label">Cargar imagen 360</div>
-          <div class="step-sub">Equirrectangular · JPG / PNG / WEBP</div>
-        </div>
-      </div>
-
-      <input type="file" id="file-input" accept="image/*" />
-      <button class="btn btn-primary" id="btn-load">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Seleccionar imagen
-      </button>
-
-      <div class="divider"></div>
-
-      <!-- Step 2 (iOS) -->
-      <div class="step">
-        <div class="step-num">2</div>
-        <div>
-          <div class="step-label">Activar giroscopio</div>
-          <div class="step-sub">Requerido en iOS 13+</div>
-        </div>
-      </div>
-
-      <button class="btn btn-secondary" id="btn-gyro">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
-        Solicitar permiso de giroscopio
-      </button>
-
-      <div id="status-bar">Estado: <span id="status-text">Sin imagen cargada</span></div>
-      <button class="btn btn-enter" id="btn-enter" style="display:none; margin-top:14px;">
-        &#x25B6; Entrar al visor 360°
-      </button>
+    <div class="row">
+      <div class="num">1</div>
+      <div><div class="lbl">Cargar imagen 360</div><div class="sub2">Equirrectangular · JPG / PNG / WEBP</div></div>
     </div>
+    <input type="file" id="file-input" accept="image/*">
+    <button class="btn btn-red" id="btn-load">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Seleccionar imagen
+    </button>
+
+    <hr>
+
+    <div class="row">
+      <div class="num">2</div>
+      <div><div class="lbl">Activar giroscopio</div><div class="sub2">Requerido en iOS 13+</div></div>
+    </div>
+    <button class="btn btn-gyro" id="btn-gyro">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      Solicitar permiso de giroscopio
+    </button>
+
+    <!-- Shown after image loads -->
+    <button class="btn btn-enter" id="btn-enter">
+      ▶ Entrar al visor 360°
+    </button>
+    <button class="btn btn-sbs" id="btn-sbs">
+      ⊞ Modo Cardboard (Split Screen)
+    </button>
+
+    <div id="status">Estado: <span id="status-txt">Sin imagen cargada</span></div>
   </div>
+</div>
 
-  <!-- ── VR HINT ────────────────────────────────────────── -->
-  <div id="vr-hint">
-    ↕ Mueve el teléfono para explorar · Presiona VR para Cardboard
-  </div>
+<!-- Exit SBS -->
+<button id="btn-exit-sbs">✕ Salir de Cardboard</button>
 
-  <!-- ─────────────────────────────────────────────────── -->
-  <script>
-    /* ── ELEMENT REFS ───────────────────────────────────── */
-    const scene       = document.getElementById('vr-scene');
-    const sky         = document.getElementById('sky');
-    const skyTexture  = document.getElementById('sky-texture');
-    const fileInput   = document.getElementById('file-input');
-    const btnLoad     = document.getElementById('btn-load');
-    const btnGyro     = document.getElementById('btn-gyro');
-    const uiOverlay   = document.getElementById('ui-overlay');
-    const headerBadge = document.getElementById('header-badge');
-    const statusText  = document.getElementById('status-text');
-    const loadingVeil = document.getElementById('loading-veil');
-    const vrHint      = document.getElementById('vr-hint');
-    const btnEnter    = document.getElementById('btn-enter');
+<script>
+  /* ── refs ── */
+  const scene      = document.getElementById('scene');
+  const sky        = document.getElementById('sky');
+  const cam        = document.getElementById('cam');
+  const fileInput  = document.getElementById('file-input');
+  const btnLoad    = document.getElementById('btn-load');
+  const btnGyro    = document.getElementById('btn-gyro');
+  const btnEnter   = document.getElementById('btn-enter');
+  const btnSBS     = document.getElementById('btn-sbs');
+  const btnExitSBS = document.getElementById('btn-exit-sbs');
+  const ui         = document.getElementById('ui');
+  const badge      = document.getElementById('badge');
+  const statusTxt  = document.getElementById('status-txt');
+  const veil       = document.getElementById('veil');
+  const sbsCanvas  = document.getElementById('sbs-canvas');
 
-    /* ── LOADING VEIL ───────────────────────────────────── */
-    function hideVeil() {
-      if (!loadingVeil.parentNode) return;
-      loadingVeil.classList.add('fade-out');
-      setTimeout(() => { if (loadingVeil.parentNode) loadingVeil.remove(); }, 900);
+  /* ── veil ── */
+  function hideVeil() {
+    veil.classList.add('out');
+    setTimeout(() => { if (veil.parentNode) veil.remove(); }, 900);
+  }
+  scene.addEventListener('loaded', hideVeil);
+  scene.addEventListener('renderstart', hideVeil);
+  setTimeout(hideVeil, 5000);
+
+  /* ── default placeholder sky via canvas ── */
+  (function() {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 512;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0,0,0,512);
+    g.addColorStop(0,'#050510'); g.addColorStop(.4,'#0d0d2b'); g.addColorStop(1,'#1a0a0a');
+    ctx.fillStyle = g; ctx.fillRect(0,0,1024,512);
+    for (let i=0;i<600;i++) {
+      ctx.beginPath();
+      ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*1.1, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${.4+Math.random()*.6})`; ctx.fill();
     }
-    scene.addEventListener('loaded', hideVeil);
-    scene.addEventListener('renderstart', hideVeil);
-    setTimeout(hideVeil, 4000);
+    sky.setAttribute('src', c.toDataURL('image/jpeg',.9));
+  })();
 
-    /* ── FILE LOAD ──────────────────────────────────────── */
-    btnLoad.addEventListener('click', () => fileInput.click());
+  /* ── load image ── */
+  let currentImageEl = null;
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  btnLoad.addEventListener('click', () => fileInput.click());
 
-      // Revoke previous objectURL to free memory
-      if (btnLoad._prevURL) URL.revokeObjectURL(btnLoad._prevURL);
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fileInput.value = '';
 
-      const objectURL = URL.createObjectURL(file);
-      btnLoad._prevURL = objectURL;
+    const img = new Image();
+    img.onload = () => {
+      // Draw to canvas then use dataURL — bypasses iOS CORS/blob restrictions with A-Frame
+      const c = document.createElement('canvas');
+      c.width  = Math.min(img.width, 4096);
+      c.height = Math.min(img.height, 2048);
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const dataURL = c.toDataURL('image/jpeg', 0.92);
 
-      // Apply directly to a-sky — most reliable on mobile
-      sky.setAttribute('src', objectURL);
+      // Store for SBS renderer
+      currentImageEl = c;
 
-      btnLoad.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Imagen cargada
-      `;
-      statusText.textContent = file.name;
+      // Apply to A-Frame sky
+      sky.setAttribute('src', dataURL);
 
-      // Show the "enter viewer" button
+      btnLoad.innerHTML = '✓ Imagen cargada';
+      statusTxt.textContent = file.name;
       btnEnter.style.display = 'flex';
+      btnSBS.style.display = 'flex';
+    };
+    img.onerror = () => { statusTxt.textContent = '⚠ Error al cargar imagen'; };
 
-      fileInput.value = '';
-    });
+    // Use FileReader for maximum iOS compatibility
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.readAsDataURL(file);
+  });
 
-    /* ── GYROSCOPE PERMISSION (iOS 13+) ─────────────────── */
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  /* ── enter viewer (hide UI) ── */
+  btnEnter.addEventListener('click', () => {
+    ui.classList.add('hidden');
+    badge.classList.add('hidden');
+  });
 
-    // Hide gyro button on non-iOS unless DeviceOrientationEvent.requestPermission exists
-    if (!isIOS && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-      btnGyro.style.display = 'none';
-      // Auto-note
-      const autoNote = document.createElement('div');
-      autoNote.style.cssText = 'font-family:Space Mono,monospace;font-size:10px;opacity:0.4;text-align:center;margin-top:8px;letter-spacing:.06em;';
-      autoNote.textContent = 'Giroscopio activo automáticamente en Android';
-      btnGyro.parentNode.insertBefore(autoNote, btnGyro.nextSibling);
+  /* ── VR mode (A-Frame native) ── */
+  scene.addEventListener('enter-vr', () => {
+    ui.classList.add('hidden');
+    badge.classList.add('hidden');
+  });
+  scene.addEventListener('exit-vr', () => {
+    if (sbsCanvas.style.display === 'none' || !sbsCanvas.style.display) {
+      ui.classList.remove('hidden');
+      badge.classList.remove('hidden');
+    }
+  });
+
+  /* ── SBS / Cardboard mode ── */
+  let sbsRunning = false;
+  let sbsRAF = null;
+
+  btnSBS.addEventListener('click', () => {
+    if (!currentImageEl) return;
+    enterSBS();
+  });
+
+  btnExitSBS.addEventListener('click', exitSBS);
+
+  function enterSBS() {
+    // Request fullscreen/landscape
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+    if (rfs) rfs.call(el).catch(() => {});
+
+    // Lock orientation to landscape if available
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
     }
 
-    btnGyro.addEventListener('click', async () => {
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          const state = await DeviceOrientationEvent.requestPermission();
-          if (state === 'granted') {
-            btnGyro.classList.add('granted');
-            btnGyro.innerHTML = `
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Giroscopio activado ✓
-            `;
+    // Hide A-Frame, show SBS canvas
+    scene.style.display = 'none';
+    sbsCanvas.style.display = 'block';
+    ui.classList.add('hidden');
+    badge.classList.add('hidden');
+    btnExitSBS.style.display = 'block';
 
-            // Re-enable look-controls on camera entity
-            const cam = scene.querySelector('[camera]');
-            if (cam) {
-              cam.setAttribute('look-controls', 'magicWindowTrackingEnabled: true');
-            }
-          } else {
-            btnGyro.innerHTML = '⚠ Permiso denegado — intenta de nuevo';
-          }
-        } catch (err) {
-          console.error('Gyroscope permission error:', err);
-          btnGyro.innerHTML = '⚠ Error al solicitar permiso';
+    sbsCanvas.width  = window.screen.width  * window.devicePixelRatio;
+    sbsCanvas.height = window.screen.height * window.devicePixelRatio;
+
+    sbsRunning = true;
+    renderSBS();
+  }
+
+  function exitSBS() {
+    sbsRunning = false;
+    if (sbsRAF) cancelAnimationFrame(sbsRAF);
+    sbsCanvas.style.display = 'none';
+    scene.style.display = '';
+    btnExitSBS.style.display = 'none';
+    ui.classList.remove('hidden');
+    badge.classList.remove('hidden');
+    if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  }
+
+  // Simple SBS: draw image twice side by side with yaw offset from DeviceOrientation
+  let yaw = 0, pitch = 0;
+  window.addEventListener('deviceorientation', (e) => {
+    // Alpha = compass yaw (0-360), Beta = front-back tilt, Gamma = left-right tilt
+    if (e.alpha !== null) yaw   = e.alpha  * Math.PI / 180;
+    if (e.beta  !== null) pitch = e.beta   * Math.PI / 180;
+  });
+
+  function renderSBS() {
+    if (!sbsRunning || !currentImageEl) return;
+
+    const ctx  = sbsCanvas.getContext('2d');
+    const W    = sbsCanvas.width;
+    const H    = sbsCanvas.height;
+    const half = W / 2;
+    const imgW = currentImageEl.width;
+    const imgH = currentImageEl.height;
+
+    // Field of view ~90 degrees
+    const fovX = Math.PI / 2;
+    const fovY = fovX * (H / half);
+
+    // Source crop width/height in the equirectangular image
+    const srcW = imgW * (fovX / (2 * Math.PI));
+    const srcH = imgH * (fovY / Math.PI);
+
+    // Center of crop from yaw
+    const centerX = ((yaw / (2 * Math.PI)) * imgW + imgW) % imgW;
+    const centerY = imgH / 2 + (pitch / Math.PI) * imgH * 0.5;
+
+    let srcX = centerX - srcW / 2;
+    let srcY = Math.max(0, Math.min(imgH - srcH, centerY - srcH / 2));
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+
+    // Left eye
+    drawEyeWrapped(ctx, currentImageEl, imgW, imgH, srcX, srcY, srcW, srcH, 0, 0, half, H);
+    // Right eye (slight offset for stereoscopy)
+    const ipd = imgW * 0.01;
+    drawEyeWrapped(ctx, currentImageEl, imgW, imgH, srcX + ipd, srcY, srcW, srcH, half, 0, half, H);
+
+    // Separator line
+    ctx.fillStyle = '#000';
+    ctx.fillRect(half - 1, 0, 2, H);
+
+    sbsRAF = requestAnimationFrame(renderSBS);
+  }
+
+  function drawEyeWrapped(ctx, src, imgW, imgH, sx, sy, sw, sh, dx, dy, dw, dh) {
+    sx = ((sx % imgW) + imgW) % imgW;
+    const right = sx + sw;
+
+    if (right <= imgW) {
+      ctx.drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh);
+    } else {
+      // Wraps around — draw in two parts
+      const w1 = imgW - sx;
+      const w2 = right - imgW;
+      const split = dw * (w1 / sw);
+      ctx.drawImage(src, sx, sy, w1, sh, dx,         dy, split,      dh);
+      ctx.drawImage(src, 0,  sy, w2, sh, dx + split, dy, dw - split, dh);
+    }
+  }
+
+  /* ── gyroscope permission ── */
+  if (typeof DeviceOrientationEvent === 'undefined' ||
+      typeof DeviceOrientationEvent.requestPermission !== 'function') {
+    btnGyro.classList.add('ok');
+    btnGyro.innerHTML = '✓ Giroscopio listo (Android)';
+  }
+
+  btnGyro.addEventListener('click', async () => {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const s = await DeviceOrientationEvent.requestPermission();
+        if (s === 'granted') {
+          btnGyro.classList.add('ok');
+          btnGyro.innerHTML = '✓ Giroscopio activado';
+        } else {
+          btnGyro.innerHTML = '⚠ Permiso denegado';
         }
-      } else {
-        // Android / desktop — permission already available
-        btnGyro.classList.add('granted');
-        btnGyro.innerHTML = `
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Giroscopio listo ✓
-        `;
-      }
-    });
+      } catch(err) { btnGyro.innerHTML = '⚠ Error: ' + err.message; }
+    }
+  });
 
-    /* ── ENTER VIEWER BUTTON ────────────────────────────── */
-    btnEnter.addEventListener('click', () => {
-      uiOverlay.classList.add('hidden');
-      headerBadge.classList.add('hidden');
-      // Show hint briefly
-      vrHint.classList.add('visible');
-      setTimeout(() => vrHint.classList.remove('visible'), 4000);
-    });
-
-    /* ── VR MODE LISTENERS ──────────────────────────────── */
-    scene.addEventListener('enter-vr', () => {
-      uiOverlay.classList.add('hidden');
-      headerBadge.classList.add('hidden');
-    });
-
-    scene.addEventListener('exit-vr', () => {
-      uiOverlay.classList.remove('hidden');
-      headerBadge.classList.remove('hidden');
-    });
-
-    /* ── FULL SCREEN ON MOBILE (non-VR) ─────────────────── */
-    document.addEventListener('touchstart', () => {
-      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    }, { once: true });
-
-    /* ── DEFAULT SKY (gradient placeholder) ─────────────── */
-    // If no image is loaded, show a subtle animated sky so the scene isn't blank
-    (function setDefaultSky() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 2048; canvas.height = 1024;
-      const ctx = canvas.getContext('2d');
-
-      const grad = ctx.createLinearGradient(0, 0, 0, 1024);
-      grad.addColorStop(0, '#050510');
-      grad.addColorStop(0.4, '#0d0d2b');
-      grad.addColorStop(1, '#1a0a0a');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 2048, 1024);
-
-      // Stars
-      for (let i = 0; i < 900; i++) {
-        const x = Math.random() * 2048;
-        const y = Math.random() * 1024;
-        const r = Math.random() * 1.2;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.random() * 0.7})`;
-        ctx.fill();
-      }
-
-      // Subtle horizon glow
-      const glow = ctx.createRadialGradient(1024, 950, 0, 1024, 950, 600);
-      glow.addColorStop(0, 'rgba(232,66,10,0.18)');
-      glow.addColorStop(1, 'rgba(232,66,10,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 400, 2048, 624);
-
-      sky.setAttribute('src', canvas.toDataURL('image/jpeg', 0.92));
-    })();
-  </script>
-
+  /* ── fullscreen on first touch ── */
+  document.addEventListener('touchstart', () => {
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (rfs && !document.fullscreenElement) rfs.call(el).catch(() => {});
+  }, { once: true });
+</script>
 </body>
 </html>
