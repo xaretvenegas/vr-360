@@ -226,6 +226,14 @@
 
     .btn-secondary.granted:hover { background: rgba(74, 222, 128, 0.1); }
 
+    .btn-enter {
+      background: var(--accent2);
+      color: var(--ink);
+      box-shadow: 0 4px 20px rgba(245, 197, 24, 0.35);
+      font-weight: 800;
+    }
+    .btn-enter:hover { box-shadow: 0 6px 28px rgba(245, 197, 24, 0.5); }
+
     /* hide native file input */
     #file-input { display: none; }
 
@@ -383,6 +391,9 @@
       </button>
 
       <div id="status-bar">Estado: <span id="status-text">Sin imagen cargada</span></div>
+      <button class="btn btn-enter" id="btn-enter" style="display:none; margin-top:14px;">
+        &#x25B6; Entrar al visor 360°
+      </button>
     </div>
   </div>
 
@@ -405,6 +416,7 @@
     const statusText  = document.getElementById('status-text');
     const loadingVeil = document.getElementById('loading-veil');
     const vrHint      = document.getElementById('vr-hint');
+    const btnEnter    = document.getElementById('btn-enter');
 
     /* ── LOADING VEIL ───────────────────────────────────── */
     function hideVeil() {
@@ -423,58 +435,24 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      // Visual feedback while reading
-      btnLoad.innerHTML = `<div class="loader-ring" style="width:18px;height:18px;margin:0"></div> Cargando...`;
-      btnLoad.style.opacity = '0.7';
-      statusText.textContent = 'Leyendo archivo…';
+      // Revoke previous objectURL to free memory
+      if (btnLoad._prevURL) URL.revokeObjectURL(btnLoad._prevURL);
 
-      const reader = new FileReader();
+      const objectURL = URL.createObjectURL(file);
+      btnLoad._prevURL = objectURL;
 
-      reader.onload = (evt) => {
-        const dataURL = evt.target.result;
+      // Apply directly to a-sky — most reliable on mobile
+      sky.setAttribute('src', objectURL);
 
-        // Swap texture via A-Frame asset system
-        skyTexture.src = dataURL;
+      btnLoad.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Imagen cargada
+      `;
+      statusText.textContent = file.name;
 
-        sky.addEventListener('materialtextureloaded', () => {
-          sky.setAttribute('src', '#sky-texture');
-          statusText.textContent = file.name;
+      // Show the "enter viewer" button
+      btnEnter.style.display = 'flex';
 
-          btnLoad.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Imagen cargada
-          `;
-          btnLoad.style.opacity = '1';
-
-          // Show VR hint
-          vrHint.classList.add('visible');
-          setTimeout(() => vrHint.classList.remove('visible'), 4000);
-        }, { once: true });
-
-        // Fallback: set src directly on a-sky with object URL
-        const objectURL = URL.createObjectURL(file);
-        sky.setAttribute('src', objectURL);
-
-        btnLoad.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Imagen cargada
-        `;
-        btnLoad.style.opacity = '1';
-        statusText.textContent = file.name;
-
-        vrHint.classList.add('visible');
-        setTimeout(() => vrHint.classList.remove('visible'), 4500);
-      };
-
-      reader.onerror = () => {
-        statusText.textContent = '⚠ Error al leer el archivo';
-        btnLoad.innerHTML = 'Reintentar';
-        btnLoad.style.opacity = '1';
-      };
-
-      reader.readAsDataURL(file);
-
-      // Reset for next pick
       fileInput.value = '';
     });
 
@@ -522,6 +500,15 @@
           Giroscopio listo ✓
         `;
       }
+    });
+
+    /* ── ENTER VIEWER BUTTON ────────────────────────────── */
+    btnEnter.addEventListener('click', () => {
+      uiOverlay.classList.add('hidden');
+      headerBadge.classList.add('hidden');
+      // Show hint briefly
+      vrHint.classList.add('visible');
+      setTimeout(() => vrHint.classList.remove('visible'), 4000);
     });
 
     /* ── VR MODE LISTENERS ──────────────────────────────── */
