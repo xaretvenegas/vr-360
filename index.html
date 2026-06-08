@@ -1,138 +1,110 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
   <title>VR 360 · Visor Inmersivo</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
-    :root {
-      --ink:#0a0a0f; --paper:#f0ede6; --accent:#e8420a;
-      --accent2:#f5c518; --glass:rgba(10,10,15,0.82); --border:rgba(240,237,230,0.15);
-    }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    html,body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Syne',sans-serif; color:var(--paper); }
+    :root{ --ink:#0a0a0f;--paper:#f0ede6;--accent:#e8420a;--accent2:#f5c518;
+           --glass:rgba(10,10,15,0.82);--border:rgba(240,237,230,0.15); }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000;
+              font-family:'Syne',sans-serif;color:var(--paper)}
+    a-scene{width:100vw!important;height:100vh!important}
 
-    a-scene { width:100vw!important; height:100vh!important; }
-
-    /* SBS fullscreen canvas */
-    #sbs-canvas {
-      display:none; position:fixed; inset:0; z-index:10;
-      width:100%; height:100%; background:#000;
-      /* Force landscape via CSS rotation when needed */
-    }
-    #sbs-canvas.rotate {
-      width:100vh; height:100vw;
-      position:fixed;
-      top:50%; left:50%;
-      transform:translate(-50%,-50%) rotate(90deg);
-      transform-origin:center center;
+    #sbs-canvas{
+      display:none;position:fixed;top:0;left:0;
+      width:100%;height:100%;z-index:10;background:#000;
     }
 
-    /* UI overlay */
-    #ui {
-      position:fixed; inset:0; z-index:200;
-      display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    #ui{
+      position:fixed;inset:0;z-index:200;
+      display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
       padding-bottom:max(28px,env(safe-area-inset-bottom,28px));
-      pointer-events:none;
-      transition:opacity .5s, transform .5s;
+      pointer-events:none;transition:opacity .5s,transform .5s;
     }
-    #ui.hidden { opacity:0; transform:translateY(20px); pointer-events:none; }
-
-    #panel {
-      background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      border:1px solid var(--border); border-radius:18px;
-      padding:22px; width:min(340px,calc(100vw - 32px));
-      pointer-events:all;
+    #ui.hidden{opacity:0;transform:translateY(20px);pointer-events:none}
+    #panel{
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:18px;
+      padding:22px;width:min(340px,calc(100vw - 32px));pointer-events:all;
     }
-    .title { font-size:24px; font-weight:800; line-height:1.05; margin-bottom:3px; }
-    .sub   { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; opacity:.4; margin-bottom:18px; }
-    .row   { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-    .num   { font-family:'Space Mono',monospace; font-size:10px; font-weight:700; color:var(--accent);
-             background:rgba(232,66,10,.12); border:1px solid rgba(232,66,10,.3); border-radius:4px;
-             width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .lbl   { font-size:13px; font-weight:700; line-height:1.2; }
-    .sub2  { font-family:'Space Mono',monospace; font-size:10px; opacity:.4; margin-top:1px; }
-    hr     { border:none; border-top:1px solid var(--border); margin:14px 0; }
+    .title{font-size:24px;font-weight:800;line-height:1.05;margin-bottom:3px}
+    .sub{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;
+         text-transform:uppercase;opacity:.4;margin-bottom:18px}
+    .row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+    .num{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;
+         color:var(--accent);background:rgba(232,66,10,.12);
+         border:1px solid rgba(232,66,10,.3);border-radius:4px;
+         width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .lbl{font-size:13px;font-weight:700;line-height:1.2}
+    .sub2{font-family:'Space Mono',monospace;font-size:10px;opacity:.4;margin-top:1px}
+    hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+    .btn{width:100%;padding:13px 16px;border:none;border-radius:3px;
+         font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;
+         cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+         transition:transform .12s,box-shadow .12s;margin-bottom:8px}
+    .btn:active{transform:scale(.97)}
+    .btn-red  {background:var(--accent);color:#fff;box-shadow:0 4px 18px rgba(232,66,10,.4)}
+    .btn-gyro {background:transparent;color:var(--paper);border:1px solid var(--border)}
+    .btn-gyro.ok{color:#4ade80;border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.07)}
+    .btn-enter{background:var(--accent2);color:var(--ink);font-weight:800;
+               box-shadow:0 4px 18px rgba(245,197,24,.35);display:none}
+    .btn-sbs  {background:#1a1a2e;color:var(--paper);border:1px solid rgba(100,100,255,.3);display:none}
+    #file-input{display:none}
+    #status{font-family:'Space Mono',monospace;font-size:10px;opacity:.35;
+            text-align:center;margin-top:10px;letter-spacing:.06em}
+    #status span{color:var(--accent2);opacity:1}
 
-    .btn {
-      width:100%; padding:13px 16px; border:none; border-radius:3px;
-      font-family:'Syne',sans-serif; font-size:13px; font-weight:700; letter-spacing:.04em;
-      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
-      transition:transform .12s, box-shadow .12s; margin-bottom:8px;
+    #badge{
+      position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:201;
+      display:flex;align-items:center;gap:8px;
+      background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border:1px solid var(--border);border-radius:100px;padding:7px 14px 7px 10px;
+      pointer-events:none;transition:opacity .5s;
     }
-    .btn:last-child { margin-bottom:0; }
-    .btn:active { transform:scale(.97); }
-    .btn-red   { background:var(--accent); color:#fff; box-shadow:0 4px 18px rgba(232,66,10,.4); }
-    .btn-gyro  { background:transparent; color:var(--paper); border:1px solid var(--border); }
-    .btn-gyro.ok { color:#4ade80; border-color:rgba(74,222,128,.3); background:rgba(74,222,128,.07); }
-    .btn-enter { background:var(--accent2); color:var(--ink); font-weight:800;
-                 box-shadow:0 4px 18px rgba(245,197,24,.35); display:none; }
-    .btn-sbs   { background:#1a1a2e; color:var(--paper); border:1px solid rgba(100,100,255,.3); display:none; }
+    #badge.hidden{opacity:0}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+         animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+    .badge-txt{font-family:'Space Mono',monospace;font-size:11px;
+               letter-spacing:.08em;text-transform:uppercase;opacity:.8}
 
-    #file-input { display:none; }
-    #status { font-family:'Space Mono',monospace; font-size:10px; opacity:.35;
-              text-align:center; margin-top:10px; letter-spacing:.06em; }
-    #status span { color:var(--accent2); opacity:1; }
-
-    /* Badge */
-    #badge {
-      position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:201;
-      display:flex; align-items:center; gap:8px;
-      background:var(--glass); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      border:1px solid var(--border); border-radius:100px; padding:7px 14px 7px 10px;
-      pointer-events:none; transition:opacity .5s;
+    #btn-back{
+      position:fixed;top:18px;left:18px;z-index:201;display:none;
+      background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border:1px solid var(--border);border-radius:100px;
+      color:var(--paper);font-family:'Space Mono',monospace;
+      font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+      padding:9px 16px;cursor:pointer;
     }
-    #badge.hidden { opacity:0; }
-    .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
-    .badge-txt { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.8; }
-
-    /* Back button (visible in viewer mode) */
-    #btn-back {
-      position:fixed; top:18px; left:18px; z-index:201;
-      display:none;
-      background:var(--glass); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      border:1px solid var(--border); border-radius:100px;
-      color:var(--paper); font-family:'Space Mono',monospace;
-      font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-      padding:9px 16px; cursor:pointer;
+    #btn-exit-sbs{
+      position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));
+      left:50%;transform:translateX(-50%);z-index:50;display:none;
+      background:rgba(10,10,15,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      border:1px solid var(--border);border-radius:100px;
+      color:var(--paper);font-family:'Space Mono',monospace;
+      font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+      padding:10px 22px;cursor:pointer;white-space:nowrap;
     }
-
-    /* SBS overlay buttons */
-    #sbs-ui {
-      display:none; position:fixed; z-index:50;
-      /* positioned at bottom center — works in both portrait+rotated and true landscape */
-      bottom:max(20px,env(safe-area-inset-bottom,20px));
-      left:50%; transform:translateX(-50%);
-    }
-    #btn-exit-sbs {
-      background:rgba(10,10,15,.8); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-      border:1px solid var(--border); border-radius:100px;
-      color:var(--paper); font-family:'Space Mono',monospace;
-      font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-      padding:10px 22px; cursor:pointer; white-space:nowrap;
-    }
-
-    /* Veil */
-    #veil {
-      position:fixed; inset:0; z-index:300; background:var(--ink);
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    #veil{
+      position:fixed;inset:0;z-index:300;background:var(--ink);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
       transition:opacity .8s;
     }
-    #veil.out { opacity:0; pointer-events:none; }
-    .ring { width:44px; height:44px; border:2px solid rgba(240,237,230,.1);
-            border-top-color:var(--accent); border-radius:50%; animation:spin .9s linear infinite; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    .veil-txt { font-family:'Space Mono',monospace; font-size:11px;
-                letter-spacing:.15em; text-transform:uppercase; opacity:.45; }
+    #veil.out{opacity:0;pointer-events:none}
+    .ring{width:44px;height:44px;border:2px solid rgba(240,237,230,.1);
+          border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .veil-txt{font-family:'Space Mono',monospace;font-size:11px;
+              letter-spacing:.15em;text-transform:uppercase;opacity:.45}
   </style>
 </head>
 <body>
 
 <div id="veil"><div class="ring"></div><div class="veil-txt">Iniciando escena VR</div></div>
-
 <canvas id="sbs-canvas"></canvas>
 
 <a-scene id="scene" vr-mode-ui="enabled:false" embedded
@@ -148,7 +120,6 @@
   <div id="panel">
     <div class="title">Visor VR<br>360°</div>
     <div class="sub">Google Cardboard · WebXR</div>
-
     <div class="row">
       <div class="num">1</div>
       <div><div class="lbl">Cargar imagen 360</div><div class="sub2">Equirrectangular · JPG / PNG / WEBP</div></div>
@@ -158,9 +129,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Seleccionar imagen
     </button>
-
     <hr>
-
     <div class="row">
       <div class="num">2</div>
       <div><div class="lbl">Activar giroscopio</div><div class="sub2">Requerido en iOS 13+</div></div>
@@ -169,15 +138,13 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       Solicitar permiso de giroscopio
     </button>
-
     <button class="btn btn-enter" id="btn-enter">▶ Entrar al visor 360°</button>
     <button class="btn btn-sbs"   id="btn-sbs">⊞ Modo Cardboard (Split Screen)</button>
-
     <div id="status">Estado: <span id="status-txt">Sin imagen cargada</span></div>
   </div>
 </div>
 
-<div id="sbs-ui"><button id="btn-exit-sbs">✕ Salir de Cardboard</button></div>
+<button id="btn-exit-sbs">✕ Salir de Cardboard</button>
 
 <script>
 /* ── refs ── */
@@ -192,303 +159,274 @@ const btnExitSBS = document.getElementById('btn-exit-sbs');
 const btnBack    = document.getElementById('btn-back');
 const ui         = document.getElementById('ui');
 const badge      = document.getElementById('badge');
-const sbsUI      = document.getElementById('sbs-ui');
 const statusTxt  = document.getElementById('status-txt');
 const veil       = document.getElementById('veil');
 const sbsCanvas  = document.getElementById('sbs-canvas');
 
 /* ── veil ── */
-function hideVeil() {
+function hideVeil(){
   veil.classList.add('out');
-  setTimeout(() => { if (veil.parentNode) veil.remove(); }, 900);
+  setTimeout(()=>{ if(veil.parentNode) veil.remove(); },900);
 }
 scene.addEventListener('loaded', hideVeil);
 scene.addEventListener('renderstart', hideVeil);
 setTimeout(hideVeil, 5000);
 
 /* ── placeholder sky ── */
-(function() {
-  const c = document.createElement('canvas');
-  c.width=1024; c.height=512;
+(function(){
+  const c=document.createElement('canvas'); c.width=1024; c.height=512;
   const ctx=c.getContext('2d');
   const g=ctx.createLinearGradient(0,0,0,512);
-  g.addColorStop(0,'#050510'); g.addColorStop(.4,'#0d0d2b'); g.addColorStop(1,'#1a0a0a');
+  g.addColorStop(0,'#050510');g.addColorStop(.4,'#0d0d2b');g.addColorStop(1,'#1a0a0a');
   ctx.fillStyle=g; ctx.fillRect(0,0,1024,512);
   for(let i=0;i<600;i++){
-    ctx.beginPath(); ctx.arc(Math.random()*1024,Math.random()*512,Math.random()*1.1,0,Math.PI*2);
-    ctx.fillStyle=`rgba(255,255,255,${.4+Math.random()*.6})`; ctx.fill();
+    ctx.beginPath();ctx.arc(Math.random()*1024,Math.random()*512,Math.random()*1.1,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${.4+Math.random()*.6})`;ctx.fill();
   }
   sky.setAttribute('src',c.toDataURL('image/jpeg',.9));
 })();
 
 /* ── load image ── */
 let imgCanvas = null;
-
-btnLoad.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  fileInput.value = '';
-
+btnLoad.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return; fileInput.value='';
   const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width  = Math.min(img.width,  4096);
-    c.height = Math.min(img.height, 2048);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    imgCanvas = c;
-
-    sky.setAttribute('src', c.toDataURL('image/jpeg', 0.92));
-    btnLoad.innerHTML = '✓ Imagen cargada';
-    statusTxt.textContent = file.name;
-    btnEnter.style.display = 'flex';
-    btnSBS.style.display   = 'flex';
+  img.onload = ()=>{
+    const c=document.createElement('canvas');
+    c.width=Math.min(img.width,4096); c.height=Math.min(img.height,2048);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    imgCanvas=c;
+    sky.setAttribute('src', c.toDataURL('image/jpeg',0.92));
+    btnLoad.innerHTML='✓ Imagen cargada';
+    statusTxt.textContent=file.name;
+    btnEnter.style.display='flex';
+    btnSBS.style.display='flex';
   };
-  img.onerror = () => { statusTxt.textContent = '⚠ Error'; };
-
-  const reader = new FileReader();
-  reader.onload = ev => { img.src = ev.target.result; };
+  img.onerror=()=>{ statusTxt.textContent='⚠ Error'; };
+  const reader=new FileReader();
+  reader.onload=ev=>{ img.src=ev.target.result; };
   reader.readAsDataURL(file);
 });
 
-/* ── viewer mode (normal) ── */
-function enterViewer() {
-  ui.classList.add('hidden');
-  badge.classList.add('hidden');
-  btnBack.style.display = 'block';
-}
-function exitViewer() {
-  ui.classList.remove('hidden');
-  badge.classList.remove('hidden');
-  btnBack.style.display = 'none';
-}
-btnEnter.addEventListener('click', enterViewer);
-btnBack.addEventListener('click', exitViewer);
+/* ── viewer ── */
+btnEnter.addEventListener('click',()=>{
+  ui.classList.add('hidden'); badge.classList.add('hidden');
+  btnBack.style.display='block';
+});
+btnBack.addEventListener('click',()=>{
+  ui.classList.remove('hidden'); badge.classList.remove('hidden');
+  btnBack.style.display='none';
+});
 
-/* ── gyroscope ── */
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-if (!isIOS || typeof DeviceOrientationEvent.requestPermission !== 'function') {
-  btnGyro.classList.add('ok');
-  btnGyro.innerHTML = '✓ Giroscopio listo';
+/* ── gyroscope permission ── */
+if(typeof DeviceOrientationEvent==='undefined'||
+   typeof DeviceOrientationEvent.requestPermission!=='function'){
+  btnGyro.classList.add('ok'); btnGyro.innerHTML='✓ Giroscopio listo';
 }
-
-btnGyro.addEventListener('click', async () => {
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      const s = await DeviceOrientationEvent.requestPermission();
-      btnGyro.classList.toggle('ok', s === 'granted');
-      btnGyro.innerHTML = s === 'granted' ? '✓ Giroscopio activado' : '⚠ Permiso denegado';
-    } catch(err) { btnGyro.innerHTML = '⚠ ' + err.message; }
+btnGyro.addEventListener('click', async()=>{
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    try{
+      const s=await DeviceOrientationEvent.requestPermission();
+      btnGyro.classList.toggle('ok',s==='granted');
+      btnGyro.innerHTML=s==='granted'?'✓ Giroscopio activado':'⚠ Permiso denegado';
+    }catch(err){ btnGyro.innerHTML='⚠ '+err.message; }
   }
 });
 
-/* ════════════════════════════════════════════════
-   SBS / CARDBOARD RENDERER
-   ════════════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   ROTATION MATRIX from deviceorientation
+   Uses ZXY Euler convention (same as WebGL/A-Frame)
+   alpha=yaw(Z), beta=pitch(X), gamma=roll(Y)
+   ════════════════════════════════════════ */
 
-let sbsRunning = false;
-let sbsRAF     = null;
+// Current rotation matrix (3x3, column-major flat array)
+let rotMat = identity3();
 
-// Raw sensor values
-let rawAlpha = 0, rawBeta = 90, rawGamma = 0;
-// Smoothed
-let smAlpha = 0, smBeta = 90, smGamma = 0;
-const SMOOTH = 0.15; // lower = smoother but more lag
+function identity3(){
+  return [1,0,0, 0,1,0, 0,0,1];
+}
 
-window.addEventListener('deviceorientation', (e) => {
-  if (e.alpha !== null) rawAlpha = e.alpha;
-  if (e.beta  !== null) rawBeta  = e.beta;
-  if (e.gamma !== null) rawGamma = e.gamma;
-}, true);
+// Build rotation matrix from device orientation angles (degrees)
+// Using the W3C DeviceOrientation spec order: Rz(alpha) * Rx(beta) * Ry(gamma)
+function deviceOrientationToMatrix(alpha, beta, gamma){
+  const degToRad = Math.PI/180;
+  const a = alpha * degToRad;
+  const b = beta  * degToRad;
+  const g = gamma * degToRad;
 
-btnSBS.addEventListener('click', () => {
-  if (!imgCanvas) return;
-  enterSBS();
-});
+  const sa=Math.sin(a), ca=Math.cos(a);
+  const sb=Math.sin(b), cb=Math.cos(b);
+  const sg=Math.sin(g), cg=Math.cos(g);
+
+  // Rz(alpha)
+  // [ca -sa  0]
+  // [sa  ca  0]
+  // [0   0   1]
+
+  // Rx(beta)
+  // [1   0   0 ]
+  // [0   cb -sb]
+  // [0   sb  cb]
+
+  // Ry(gamma)
+  // [ cg  0  sg]
+  // [  0  1   0]
+  // [-sg  0  cg]
+
+  // Combined: Rz * Rx * Ry
+  return [
+    ca*cg - sa*sb*sg,  -sa*cb,   ca*sg + sa*sb*cg,
+    sa*cg + ca*sb*sg,   ca*cb,   sa*sg - ca*sb*cg,
+   -cb*sg,              sb,      cb*cg
+  ];
+}
+
+// Extract what "forward" vector the device is pointing at
+// For a phone held flat (landscape): forward = -Z column of matrix
+// The phone in landscape points its screen forward along the -Z axis in device frame
+function getViewDirection(mat){
+  // Forward vector in world frame: third column of rotation matrix (device Z → world)
+  // In landscape-held phone, device X = screen right, device Y = screen up, device Z = screen normal (toward user)
+  // We want the direction the screen faces = negative Z column
+  // mat is row-major: mat[col + row*3]
+  // Column 2 (Z): mat[2], mat[5], mat[8]
+  return {
+    x:  mat[2],  // world X component of device Z
+    y:  mat[5],  // world Y component of device Z
+    z:  mat[8]   // world Z component of device Z
+  };
+}
+
+// Smooth rotation matrix via SLERP-like per-component
+let smoothMat = identity3();
+const SMOOTH = 0.12;
+
+window.addEventListener('deviceorientation',(e)=>{
+  if(e.alpha===null||e.beta===null||e.gamma===null) return;
+  const m = deviceOrientationToMatrix(e.alpha, e.beta, e.gamma);
+  for(let i=0;i<9;i++) smoothMat[i] += (m[i]-smoothMat[i])*SMOOTH;
+},true);
+
+/* ── SBS renderer ── */
+let sbsRunning=false, sbsRAF=null;
+
+btnSBS.addEventListener('click',()=>{ if(imgCanvas) enterSBS(); });
 btnExitSBS.addEventListener('click', exitSBS);
 
-function enterSBS() {
-  // Fullscreen
-  const rfs = document.documentElement.requestFullscreen ||
-              document.documentElement.webkitRequestFullscreen;
-  if (rfs) rfs.call(document.documentElement).catch(()=>{});
-
-  // Try to lock landscape
-  if (screen.orientation && screen.orientation.lock) {
+function enterSBS(){
+  const rfs=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+  if(rfs) rfs.call(document.documentElement).catch(()=>{});
+  if(screen.orientation&&screen.orientation.lock)
     screen.orientation.lock('landscape-primary').catch(()=>{});
-  }
 
-  scene.style.display = 'none';
-  ui.classList.add('hidden');
-  badge.classList.add('hidden');
-  btnBack.style.display = 'none';
+  scene.style.display='none';
+  ui.classList.add('hidden'); badge.classList.add('hidden');
+  btnBack.style.display='none';
+  sbsCanvas.style.display='block';
+  btnExitSBS.style.display='block';
 
-  sbsCanvas.style.display = 'block';
-  sbsUI.style.display = 'block';
+  // Size canvas — wait for orientation to settle
+  setTimeout(()=>{
+    const dpr=window.devicePixelRatio||1;
+    // Always landscape dimensions
+    const W=Math.max(window.innerWidth,window.innerHeight)*dpr;
+    const H=Math.min(window.innerWidth,window.innerHeight)*dpr;
+    sbsCanvas.width=W; sbsCanvas.height=H;
+    sbsCanvas.style.width=Math.max(window.innerWidth,window.innerHeight)+'px';
+    sbsCanvas.style.height=Math.min(window.innerWidth,window.innerHeight)+'px';
+    // Center it
+    sbsCanvas.style.top='50%'; sbsCanvas.style.left='50%';
+    sbsCanvas.style.transform='translate(-50%,-50%)';
+  },350);
 
-  // Size canvas to SCREEN dimensions (landscape: width > height)
-  // We'll handle portrait-locked screens via CSS rotation
-  resizeSBSCanvas();
-
-  sbsRunning = true;
-  // Init smoothed values from current raw
-  smAlpha = rawAlpha; smBeta = rawBeta; smGamma = rawGamma;
+  sbsRunning=true;
   renderSBS();
 }
 
-function exitSBS() {
-  sbsRunning = false;
-  if (sbsRAF) cancelAnimationFrame(sbsRAF);
-
-  sbsCanvas.style.display = 'none';
-  sbsCanvas.classList.remove('rotate');
-  sbsUI.style.display = 'none';
-  scene.style.display = '';
-
-  ui.classList.remove('hidden');
-  badge.classList.remove('hidden');
-
-  if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
-  if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+function exitSBS(){
+  sbsRunning=false;
+  if(sbsRAF) cancelAnimationFrame(sbsRAF);
+  sbsCanvas.style.display='none'; sbsCanvas.style.transform='';
+  btnExitSBS.style.display='none';
+  scene.style.display='';
+  ui.classList.remove('hidden'); badge.classList.remove('hidden');
+  if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  if(screen.orientation&&screen.orientation.unlock) screen.orientation.unlock();
 }
 
-function resizeSBSCanvas() {
-  // After fullscreen + orientation lock, window dimensions may flip
-  // Give browser a moment to settle
-  setTimeout(() => {
-    const W = window.screen.width  * (window.devicePixelRatio || 1);
-    const H = window.screen.height * (window.devicePixelRatio || 1);
-    // Always make canvas landscape
-    sbsCanvas.width  = Math.max(W, H);
-    sbsCanvas.height = Math.min(W, H);
+function renderSBS(){
+  if(!sbsRunning||!imgCanvas){ sbsRAF=requestAnimationFrame(renderSBS); return; }
 
-    // If window is still portrait (orientation lock failed), rotate via CSS
-    if (window.innerWidth < window.innerHeight) {
-      sbsCanvas.classList.add('rotate');
-    } else {
-      sbsCanvas.classList.remove('rotate');
-    }
-  }, 300);
+  const ctx=sbsCanvas.getContext('2d');
+  const W=sbsCanvas.width, H=sbsCanvas.height, half=W/2;
+  const imgW=imgCanvas.width, imgH=imgCanvas.height;
+
+  // Get forward direction from rotation matrix
+  const fwd = getViewDirection(smoothMat);
+
+  // Convert forward vector to equirectangular UV
+  // fwd.x = east, fwd.y = up, fwd.z = north (roughly)
+  // yaw = atan2(x, z),  pitch = asin(y)  — but we need to account for phone held landscape
+  // Phone landscape = rotated 90° CW from portrait
+  // In landscape: device X points down, device Y points right, device Z points toward user
+  // The "look direction" in landscape = direction screen faces = negative device Z
+  // → use -fwd components rotated for landscape hold
+  //
+  // Empirically for iOS/Android landscape:
+  // horizontal pan  = atan2(fwd.x, fwd.z)   [yaw around world Y]
+  // vertical tilt   = asin(clamp(fwd.y,-1,1)) [pitch]
+  // But phone is held rotated 90°, so swap accordingly:
+  const lookX =  fwd.x;
+  const lookY = -fwd.z;  // -Z because screen normal points toward user
+  const lookZ =  fwd.y;
+
+  const yaw   = Math.atan2(lookX, lookZ);             // -π to π
+  const pitch = Math.asin(Math.max(-1,Math.min(1,lookY))); // -π/2 to π/2
+
+  // FOV 90° horizontal
+  const fovX = Math.PI/2;
+  const fovY = fovX*(H/half);
+
+  const srcW = imgW*(fovX/(2*Math.PI));
+  const srcH = imgH*(fovY/Math.PI);
+
+  // Map yaw → X in equirectangular (0 = left edge)
+  // yaw=0 → center of image (assuming image starts at 180° behind)
+  const normYaw = ((yaw/(2*Math.PI))+0.5+1)%1; // 0–1
+  const cx = normYaw*imgW;
+  const cy = imgH/2 - (pitch/Math.PI)*imgH;
+  const srcY = Math.max(0, Math.min(imgH-srcH, cy-srcH/2));
+  const srcX = cx - srcW/2;
+
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+
+  const ipdPx = srcW*0.013;
+  drawEye(ctx,imgCanvas,imgW,imgH, srcX-ipdPx, srcY, srcW, srcH, 0,    0, half, H);
+  drawEye(ctx,imgCanvas,imgW,imgH, srcX+ipdPx, srcY, srcW, srcH, half, 0, half, H);
+
+  ctx.fillStyle='#000'; ctx.fillRect(half-1,0,2,H);
+
+  sbsRAF=requestAnimationFrame(renderSBS);
 }
 
-window.addEventListener('resize', () => {
-  if (sbsRunning) resizeSBSCanvas();
-});
-
-function lerpAngle(a, b, t) {
-  // Lerp handling wrap-around for alpha (0-360)
-  let d = b - a;
-  if (d >  180) d -= 360;
-  if (d < -180) d += 360;
-  return a + d * t;
-}
-
-function renderSBS() {
-  if (!sbsRunning || !imgCanvas) return;
-
-  // Smooth sensor values
-  smAlpha = lerpAngle(smAlpha, rawAlpha, SMOOTH);
-  smBeta  = smBeta  + (rawBeta  - smBeta)  * SMOOTH;
-  smGamma = smGamma + (rawGamma - smGamma) * SMOOTH;
-
-  const ctx  = sbsCanvas.getContext('2d');
-  const W    = sbsCanvas.width;
-  const H    = sbsCanvas.height;
-  const half = W / 2;
-
-  const imgW = imgCanvas.width;
-  const imgH = imgCanvas.height;
-
-  /*
-    Device orientation → equirectangular lookup:
-    
-    Phone held in LANDSCAPE (rotated 90° CCW from portrait):
-    - alpha: compass heading (yaw around vertical axis) → horizontal pan
-    - gamma: tilt left/right in portrait = tilt forward/back in landscape → vertical look
-    - beta:  tilt forward in portrait = yaw in landscape → used for horizontal fine-tune
-
-    Standard mapping for landscape-held phone:
-    yawDeg   = alpha  (0–360, compass)
-    pitchDeg = gamma  (−90 to +90, forward/back tilt)
-  */
-
-  // Determine if device is in landscape already
-  const inLandscape = window.innerWidth > window.innerHeight ||
-                      (Math.abs(smGamma) > 45);
-
-  let yawDeg, pitchDeg;
-
-  if (inLandscape) {
-    // Phone already landscape
-    yawDeg   = smAlpha;
-    pitchDeg = smBeta - 90; // beta≈90 when phone is flat
+function drawEye(ctx,src,imgW,imgH,sx,sy,sw,sh,dx,dy,dw,dh){
+  sx=((sx%imgW)+imgW)%imgW;
+  const right=sx+sw;
+  if(right<=imgW){
+    ctx.drawImage(src,sx,sy,sw,sh,dx,dy,dw,dh);
   } else {
-    // Phone portrait but canvas rotated — use gamma as pitch
-    yawDeg   = smAlpha;
-    pitchDeg = smGamma;
-  }
-
-  // Convert to radians
-  const yawRad   = (yawDeg   * Math.PI) / 180;
-  const pitchRad = (pitchDeg * Math.PI) / 180;
-
-  // FOV
-  const fovX = (Math.PI / 180) * 90; // 90° horizontal
-  const fovY = fovX * (H / half);    // proportional vertical
-
-  // Crop size in source image
-  const srcW = imgW * (fovX / (2 * Math.PI));
-  const srcH = imgH * (fovY / Math.PI);
-
-  // Center coordinates in source image
-  // yaw maps linearly around full 360 → imgW
-  const cx = ((yawRad / (2 * Math.PI)) * imgW + imgW) % imgW;
-  // pitch: 0 = horizon (imgH/2), positive pitch = look up = lower y
-  const cy = imgH / 2 - (pitchRad / Math.PI) * imgH;
-  const cy_clamped = Math.max(srcH / 2, Math.min(imgH - srcH / 2, cy));
-
-  const srcX = cx - srcW / 2;
-  const srcY = cy_clamped - srcH / 2;
-
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
-
-  // IPD offset (slight convergence for stereo depth)
-  const ipdPx = srcW * 0.012;
-
-  drawEye(ctx, imgCanvas, imgW, imgH, srcX - ipdPx, srcY, srcW, srcH, 0,    0, half, H);
-  drawEye(ctx, imgCanvas, imgW, imgH, srcX + ipdPx, srcY, srcW, srcH, half, 0, half, H);
-
-  // Center divider
-  ctx.fillStyle = '#000';
-  ctx.fillRect(half - 1, 0, 2, H);
-
-  sbsRAF = requestAnimationFrame(renderSBS);
-}
-
-function drawEye(ctx, src, imgW, imgH, sx, sy, sw, sh, dx, dy, dw, dh) {
-  sx = ((sx % imgW) + imgW) % imgW;
-  const right = sx + sw;
-
-  if (right <= imgW) {
-    ctx.drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh);
-  } else {
-    const w1 = imgW - sx;
-    const w2 = right - imgW;
-    const split = dw * (w1 / sw);
-    ctx.drawImage(src, sx, sy, w1, sh, dx,        dy, split,     dh);
-    ctx.drawImage(src, 0,  sy, w2, sh, dx + split, dy, dw-split, dh);
+    const w1=imgW-sx, w2=right-imgW, split=dw*(w1/sw);
+    ctx.drawImage(src,sx,sy,w1,sh,dx,       dy,split,    dh);
+    ctx.drawImage(src,0, sy,w2,sh,dx+split, dy,dw-split, dh);
   }
 }
 
 /* ── fullscreen on first touch ── */
-document.addEventListener('touchstart', () => {
-  const rfs = document.documentElement.requestFullscreen ||
-              document.documentElement.webkitRequestFullscreen;
-  if (rfs && !document.fullscreenElement) rfs.call(document.documentElement).catch(()=>{});
-}, { once: true });
+document.addEventListener('touchstart',()=>{
+  const rfs=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+  if(rfs&&!document.fullscreenElement) rfs.call(document.documentElement).catch(()=>{});
+},{once:true});
 </script>
 </body>
 </html>
