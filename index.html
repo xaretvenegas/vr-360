@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>VR 360 · Visor Inmersivo</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.5.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
@@ -407,10 +407,14 @@
     const vrHint      = document.getElementById('vr-hint');
 
     /* ── LOADING VEIL ───────────────────────────────────── */
-    scene.addEventListener('loaded', () => {
+    function hideVeil() {
+      if (!loadingVeil.parentNode) return;
       loadingVeil.classList.add('fade-out');
-      setTimeout(() => loadingVeil.remove(), 900);
-    });
+      setTimeout(() => { if (loadingVeil.parentNode) loadingVeil.remove(); }, 900);
+    }
+    scene.addEventListener('loaded', hideVeil);
+    scene.addEventListener('renderstart', hideVeil);
+    setTimeout(hideVeil, 4000);
 
     /* ── FILE LOAD ──────────────────────────────────────── */
     btnLoad.addEventListener('click', () => fileInput.click());
